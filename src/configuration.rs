@@ -45,7 +45,7 @@ impl DatabaseSettings {
         };
 
         PgConnectOptions::new()
-            .host(self.host)
+            .host(&self.host)
             .username(&self.username)
             .password(&self.password.expose_secret())
             .port(self.port)

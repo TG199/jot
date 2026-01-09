@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+actix-session = "0.11.0"
 actix-web = "4.12.1"
 anyhow = "1.0.100"
 config = "0.15.19"
