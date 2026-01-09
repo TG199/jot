@@ -6,9 +6,9 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.100"
 config = "0.15.19"
-secrecy = "0.10.3"
+secrecy = { version = "0.10.3", features = ["serde"]}
 serde = "1.0.228"
 serde-aux = "4.7.0"
-sqlx = "0.8.6"
+sqlx = { version = "0.8.6", features = ["postgres] }
 tokio = "1.49.0"
 tracing = "0.1.44"
