@@ -76,3 +76,17 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
 
     settings.try_into()
 }
+
+pub enum Environment {
+    Local,
+    Production,
+}
+
+impl Environment {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Environment::Local => "Local",
+            Environment::Production => "Production",
+        }
+    }
+}
