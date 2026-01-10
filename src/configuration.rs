@@ -2,7 +2,7 @@ use crate::startup::HmacSecret;
 use secrecy::ExposeSecret;
 use secrecy::SecretString;
 use serde_aux::field_attributes::deserialize_number_from_string;
-use sqlx::postgres::{PgConnectOptions, PgSslMode};
+use sqlx::postgres::{ConnectOptions, PgSslMode};
 
 #[derive(serde::Deserialize, Clone)]
 pub struct Settings {
@@ -32,7 +32,7 @@ pub struct ApplicationSettings {
 }
 
 impl DatabaseSettings {
-    pub fn with_db(&self) -> PgConnectOptions {
+    pub fn with_db(&self) -> ConnectOptions {
         let mut options = self.without_db().database(&self.database_name);
         options.log_statements(tracing::log::LevelFilter::Trace);
         options

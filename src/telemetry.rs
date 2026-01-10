@@ -1,5 +1,5 @@
 use tokio::task::JoinHandle;
-use tracing::{Subscriber, subscriber::set_default};
+use tracing::{Subscriber, subscriber::set_global_default};
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_log::LogTracer;
 use tracing_subscriber::fmt::MakeWriter;
@@ -9,7 +9,7 @@ pub fn get_subscriber<Sink>(
     name: String,
     env_filter: String,
     sink: Sink,
-) -> impl subscriber + Sync + Send
+) -> impl Subscriber + Sync + Send
 where
     Sink: for<'a> MakeWriter<'a> + Send + Sync + 'static,
 {
