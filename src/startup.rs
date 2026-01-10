@@ -1,5 +1,6 @@
 use crate::configuration::DatabaseSettings;
 use crate::configuration::{self, Settings};
+use crate::routes::health_check;
 
 use actix_session::SessionMiddleware;
 use actix_session::storage::RedisSessionStore;
@@ -11,9 +12,10 @@ use actix_web_flash_messages::storage::CookieMessageStore;
 use actix_web_lab::middleware::from_fn;
 use core::time;
 use secrecy::ExposeSecret;
-use secrecy::Secret;
+use secrecy::SecretString;
 use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
+use std::collections::hash_map;
 use std::net::TcpListener;
 use tracing_actix_web::TracingLogger;
 
@@ -57,3 +59,38 @@ pub fn get_connection_pool(configuration: &DatabaseSettings) -> PgPool {
 }
 
 pub struct ApplicationBaseUrl(pub Url);
+
+pub fn run(
+    listener: TcpListener,
+    db_pool: PgPool,
+    base_url: String,
+    hmc_secret: HmacSecret,
+    redis_uri: SecretString,
+) -> Result<Server, std::io::Error> {
+    let db_pool = web::Data::new(db_pool);
+    let base_url = Data::new(ApplicationBaseUrl(base_url));
+    let secret_key = Key::from(hmac_secret.expose_secret().as_bytes());
+    let message_store = CookieMessageStore::builder(secret_key.clone()).build();
+    let message_framework = FlashMessagesFramework::builder(message_store).build();
+    let redis_store = RedisSessionStore::new(redis_store.expose_secret())?;
+    let server = HttpServer::new(move || {
+        App::new()
+            .wrap(message_framework.clone())
+            .wrap(SessionMiddleware::new(
+                redis_store.clone(),
+                secret_key.clone(),
+            ))
+            .wrap(TracingLogger::default())
+            .route("/healthcheck", web::get().to(health_check))
+            .app_data(db_pool.clone())
+            .app_data(base_url.clone())
+            .app_data(Data::new(HmacSecret(hmac_secret.clone())))
+    })
+    .listen(listener)?
+    .run();
+
+    Ok(server)
+}
+
+#[derive(Clone)]
+pub struct HmacSecret(pub SecretString);

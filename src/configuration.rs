@@ -1,3 +1,4 @@
+use crate::startup::HmacSecret;
 use secrecy::ExposeSecret;
 use secrecy::SecretString;
 use serde_aux::field_attributes::deserialize_number_from_string;
@@ -27,7 +28,7 @@ pub struct ApplicationSettings {
     pub port: u16,
     pub host: String,
     pub base_url: String,
-    pub hmac_secret: SecretString,
+    pub hmac_secret: HmacSecret,
 }
 
 impl DatabaseSettings {
