@@ -1,8 +1,8 @@
-use crate::startup::HmacSecret;
-use secrecy::ExposeSecret;
-use secrecy::SecretString;
+use reqwest::Url;
+use secrecy::{ExposeSecret, SecretString};
 use serde_aux::field_attributes::deserialize_number_from_string;
-use sqlx::postgres::{ConnectOptions, PgSslMode};
+use sqlx::ConnectOptions;
+use sqlx::postgres::{PgConnectOptions, PgSslMode};
 
 #[derive(serde::Deserialize, Clone)]
 pub struct Settings {
@@ -28,13 +28,20 @@ pub struct ApplicationSettings {
     pub port: u16,
     pub host: String,
     pub base_url: String,
-    pub hmac_secret: HmacSecret,
+    pub hmac_secret: SecretString,
+}
+impl ApplicationSettings {
+    pub fn url(&self) -> Result<Url, String> {
+        Url::parse(&self.base_url).map_err(|e| e.to_string())
+    }
 }
 
 impl DatabaseSettings {
-    pub fn with_db(&self) -> ConnectOptions {
-        let mut options = self.without_db().database(&self.database_name);
-        options.log_statements(tracing::log::LevelFilter::Trace);
+    pub fn with_db(&self) -> PgConnectOptions {
+        let options = self.without_db().database(&self.database_name);
+        options
+            .clone()
+            .log_statements(tracing::log::LevelFilter::Trace);
         options
     }
 
@@ -48,7 +55,7 @@ impl DatabaseSettings {
         PgConnectOptions::new()
             .host(&self.host)
             .username(&self.username)
-            .password(&self.password.expose_secret())
+            .password(self.password.expose_secret())
             .port(self.port)
             .ssl_mode(ssl_mode)
     }

@@ -6,12 +6,13 @@ use actix_session::SessionMiddleware;
 use actix_session::storage::RedisSessionStore;
 use actix_web::cookie::Key;
 use actix_web::dev::Server;
-use actix_web::dev::Url;
 use actix_web::{App, HttpServer, web};
 use actix_web_flash_messages::FlashMessagesFramework;
 use actix_web_flash_messages::storage::CookieMessageStore;
+use reqwest::Url;
 use secrecy::ExposeSecret;
 use secrecy::SecretString;
+use serde::Deserialize;
 use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
 use std::net::TcpListener;
@@ -36,10 +37,11 @@ impl Application {
         let server = run(
             listener,
             connection_pool,
-            configuration.application.base_url,
+            configuration.application.url().expect("Invalid host url"),
             configuration.application.hmac_secret,
             configuration.redis_uri,
-        )?;
+        )
+        .await?;
 
         Ok(Self { port, server })
     }
@@ -51,25 +53,27 @@ impl Application {
 
 pub fn get_connection_pool(configuration: &DatabaseSettings) -> PgPool {
     PgPoolOptions::new()
-        .connect_timeout(std::time::Duration::from_secs(2))
+        .acquire_timeout(std::time::Duration::from_secs(2))
         .connect_lazy_with(configuration.with_db())
 }
 
 pub struct ApplicationBaseUrl(pub Url);
 
-pub fn run(
+async fn run(
     listener: TcpListener,
     db_pool: PgPool,
-    base_url: String,
-    hmac_secret: HmacSecret,
+    base_url: Url,
+    hmac_secret: SecretString,
     redis_uri: SecretString,
-) -> Result<Server, std::io::Error> {
+) -> Result<Server, anyhow::Error> {
     let db_pool = web::Data::new(db_pool);
     let base_url = web::Data::new(ApplicationBaseUrl(base_url));
+
     let secret_key = Key::from(hmac_secret.expose_secret().as_bytes());
     let message_store = CookieMessageStore::builder(secret_key.clone()).build();
     let message_framework = FlashMessagesFramework::builder(message_store).build();
-    let redis_store = RedisSessionStore::new(message_store.expose_secret())?;
+
+    let redis_store = RedisSessionStore::new(redis_uri.expose_secret()).await?;
     let server = HttpServer::new(move || {
         App::new()
             .wrap(message_framework.clone())
@@ -89,5 +93,5 @@ pub fn run(
     Ok(server)
 }
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize)]
 pub struct HmacSecret(pub SecretString);
