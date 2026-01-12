@@ -13,7 +13,7 @@ reqwest = "0.13.1"
 secrecy = { version = "0.10.3", features = ["serde"]}
 serde = { version = "1.0.228", features = ["derive"]}
 serde-aux = "4.7.0"
-sqlx = { version = "0.8.6", features = ["postgres"] }
+sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio"] }
 tokio = { version = "1.49.0", features = ["macros", "rt-multi-thread"]}
 tracing = {version = "0.1.44", features = ["log"]}
 tracing-actix-web = "0.7.20"
