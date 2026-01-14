@@ -1,6 +1,7 @@
 use crate::configuration::DatabaseSettings;
 use crate::configuration::Settings;
 use crate::routes::health_check;
+use crate::routes::home;
 
 use actix_session::SessionMiddleware;
 use actix_session::storage::RedisSessionStore;
@@ -83,6 +84,7 @@ async fn run(
             ))
             .wrap(TracingLogger::default())
             .route("/health", web::get().to(health_check))
+            .route("/", web::get().to(home))
             .app_data(db_pool.clone())
             .app_data(base_url.clone())
             .app_data(web::Data::new(HmacSecret(hmac_secret.clone())))
