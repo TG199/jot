@@ -9,18 +9,35 @@ pub fn get_subscriber<Sink>(
     name: String,
     env_filter: String,
     sink: Sink,
-) -> impl Subscriber + Sync + Send
+) -> Box<dyn Subscriber + Sync + Send>
 where
     Sink: for<'a> MakeWriter<'a> + Send + Sync + 'static,
 {
     let env_filter =
         EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(env_filter));
 
-    let formatting_layer = BunyanFormattingLayer::new(name, sink);
-    Registry::default()
-        .with(env_filter)
-        .with(JsonStorageLayer)
-        .with(formatting_layer)
+    let is_json = std::env::var("APP_ENVIRONMENT")
+        .map(|v| v == "production")
+        .unwrap_or(false);
+
+    if is_json {
+        let formatting_layer = BunyanFormattingLayer::new(name, sink);
+        Box::new(
+            Registry::default()
+                .with(env_filter)
+                .with(JsonStorageLayer)
+                .with(formatting_layer),
+        )
+    } else {
+        let formatting_layer = tracing_subscriber::fmt::layer()
+            .with_target(true)
+            .with_level(true)
+            .with_thread_ids(true)
+            .with_thread_names(true)
+            .pretty();
+
+        Box::new(Registry::default().with(env_filter).with(formatting_layer))
+    }
 }
 
 pub fn init_subscriber(subscriber: impl Subscriber + Sync + Send) {
