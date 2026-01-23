@@ -1,9 +1,9 @@
 use tokio::task::JoinHandle;
-use tracing::{Subscriber, subscriber::set_global_default};
+use tracing::{subscriber::set_global_default, Subscriber};
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_log::LogTracer;
 use tracing_subscriber::fmt::MakeWriter;
-use tracing_subscriber::{EnvFilter, Registry, layer::SubscriberExt};
+use tracing_subscriber::{layer::SubscriberExt, EnvFilter, Registry};
 
 pub fn get_subscriber<Sink>(
     name: String,

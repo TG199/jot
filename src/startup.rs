@@ -6,15 +6,15 @@ use crate::routes::post_note;
 
 use actix_web::cookie::Key;
 use actix_web::dev::Server;
-use actix_web::{App, HttpServer, web};
-use actix_web_flash_messages::FlashMessagesFramework;
+use actix_web::{web, App, HttpServer};
 use actix_web_flash_messages::storage::CookieMessageStore;
+use actix_web_flash_messages::FlashMessagesFramework;
 use reqwest::Url;
 use secrecy::ExposeSecret;
 use secrecy::SecretString;
 use serde::Deserialize;
-use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
+use sqlx::PgPool;
 use std::net::TcpListener;
 use tracing_actix_web::TracingLogger;
 
@@ -81,7 +81,6 @@ async fn run(
             .wrap(TracingLogger::default())
             .route("/", web::get().to(home))
             .route("/health", web::get().to(health_check))
-            .route("/notes", web::post().to(post_note))
             .app_data(db_pool.clone())
             .app_data(base_url.clone())
             .app_data(web::Data::new(HmacSecret(hmac_secret.clone())))
