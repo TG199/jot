@@ -4,8 +4,6 @@ use crate::routes::health_check;
 use crate::routes::home;
 use crate::routes::post_note;
 
-use actix_session::SessionMiddleware;
-use actix_session::storage::RedisSessionStore;
 use actix_web::cookie::Key;
 use actix_web::dev::Server;
 use actix_web::{App, HttpServer, web};
