@@ -73,10 +73,10 @@ pub async fn spawn_app() -> TestApp {
         .expect("Failed to build application");
 
     let application_port = application.port();
+    let address = format!("http://127.0.0.1:{}", application.port());
 
     let _ = tokio::spawn(application.run_until_stopped());
 
-    let address = format!("http://127.0.0.1:{}", application.port());
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
         .cookie_store(true)
@@ -84,21 +84,12 @@ pub async fn spawn_app() -> TestApp {
         .unwrap();
 
     let test_app = TestApp {
-        address: format!("http://localhost:{}", application_port),
+        address,
         port: application_port,
         db_pool: get_configuration_pool(&configuration.database),
-        test_user: TestUser::generate(),
         api_client: client,
     };
-
-    test_app.test_user.store(&test_app.db_pool).await;
     test_app
-}
-
-pub struct TestUser {
-    pub user_id: Uuid,
-    pub username: String,
-    pub password: String,
 }
 
 pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
@@ -110,7 +101,7 @@ pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
         .await
         .expect("Failed to create Database");
 
-    let connection_pool = PgPool::connect_with(&config.with_db())
+    let connection_pool = PgPool::connect_with(config.with_db())
         .await
         .expect("Failed to migrate the database");
     sqlx::migrate!("./migrations")
@@ -121,18 +112,7 @@ pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
     connection_pool
 }
 
-#[tokio::test]
-async fn health_check_works() {
-    let address = spawn_app();
-
-    let client = reqwest::Client::new();
-
-    let response = client
-        .get(&format!("{}/health", &address))
-        .send()
-        .await
-        .expect("Failed to execute request");
-
-    assert!(response.status().is_sucess());
-    assert_eq!(Some(0), response.content_length());
+pub fn assert_is_redirect_to(response: &reqwest::Response, location: &str) {
+    assert_eq!(response.status().as_u16(), 303);
+    assert_eq!(response.headers().get("Location").unwrap(), location);
 }
