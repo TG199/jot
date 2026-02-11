@@ -54,3 +54,56 @@ pub fn verify_password_hash(
         )
         .map_err(|e| anyhow::anyhow!("Invalid password: {}", e))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use claims::{assert_err, assert_ok};
+
+    #[test]
+    fn password_too_short_is_rejected() {
+        let password = "jshort".to_string();
+
+        assert_err!(UserPassWord::parse(password));
+    }
+
+    #[test]
+    fn password_too_long_is_rejected() {
+        let password = "a".repeat(129) + "1";
+
+        assert_err!(UserPassWord::parse(password));
+    }
+    #[test]
+    fn password_without_digit_is_rejected() {
+        let password = "nodigitshere".to_string();
+        assert_err!(UserPassword::parse(password));
+    }
+
+    #[test]
+    fn password_without_letter_is_rejected() {
+        let password = "12345678".to_string();
+        assert_err!(UserPassword::parse(password));
+    }
+
+    #[test]
+    fn valid_password_is_parsed_successfully() {
+        let password = "validPass123".to_string();
+        assert_ok!(UserPassword::parse(password));
+    }
+
+    #[test]
+    fn password_hash_verification_works() {
+        let password = UserPassWord::parse("testPass123".to_string()).unwrap();
+        let hash = compute_password_hash(&password).unwrap();
+
+        assert_ok!(verify_password_hash(&hash, &password));
+    }
+
+    #[test]
+    fn wrong_password_fails_verification() {
+        let password = UserPassword::parse("testPass123".to_string()).unwrap();
+        let wrong_password = UserPassword::parse("wrongPass123".to_string()).unwrap();
+        let hash = compute_password_hash(&password).unwrap();
+        assert_err!(verify_password_hash(&hash, &wrong_password));
+    }
+}
