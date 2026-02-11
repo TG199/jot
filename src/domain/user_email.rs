@@ -30,4 +30,31 @@ impl std::fmt::Display for UserEmail {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::UserEmail;
+    use claims::{assert_err, assert_ok};
+
+    #[test]
+    fn empty_string_is_rejected() {
+        let email = "".to_string();
+        assert_err(UserEmail::parse(email));
+    }
+
+    #[test]
+    fn email_missing_at_symbol_is_rejected() {
+        let email = "jotdomain.com".to_string();
+        assert_err!(UserEmail::parse(email));
+    }
+
+    #[test]
+    fn email_missing_subject_is_rejected() {
+        let email = "@domain.com".to_string();
+        assert_err!(UserEmail::parse(email));
+    }
+
+    #[test]
+    fn valid_email_is_parsed_successfully() {
+        let email = "jot@domain.com".to_string();
+        assert_ok!(UserEmail::parse(email));
+    }
+}
