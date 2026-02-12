@@ -1,4 +1,4 @@
-use super::{UserEmail, UserPassword};
+use super::{UserEmail, UserPassWord};
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 

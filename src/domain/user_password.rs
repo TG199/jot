@@ -41,7 +41,7 @@ pub fn compute_password_hash(password: &UserPassWord) -> Result<String, anyhow::
 }
 
 pub fn verify_password_hash(
-    expected_password_hash: &tr,
+    expected_password_hash: &str,
     password_candidate: &UserPassWord,
 ) -> Result<(), anyhow::Error> {
     let expected_password_hash = PasswordHash::new(expected_password_hash)
@@ -76,19 +76,19 @@ mod tests {
     #[test]
     fn password_without_digit_is_rejected() {
         let password = "nodigitshere".to_string();
-        assert_err!(UserPassword::parse(password));
+        assert_err!(UserPassWord::parse(password));
     }
 
     #[test]
     fn password_without_letter_is_rejected() {
         let password = "12345678".to_string();
-        assert_err!(UserPassword::parse(password));
+        assert_err!(UserPassWord::parse(password));
     }
 
     #[test]
     fn valid_password_is_parsed_successfully() {
         let password = "validPass123".to_string();
-        assert_ok!(UserPassword::parse(password));
+        assert_ok!(UserPassWord::parse(password));
     }
 
     #[test]
@@ -101,8 +101,8 @@ mod tests {
 
     #[test]
     fn wrong_password_fails_verification() {
-        let password = UserPassword::parse("testPass123".to_string()).unwrap();
-        let wrong_password = UserPassword::parse("wrongPass123".to_string()).unwrap();
+        let password = UserPassWord::parse("testPass123".to_string()).unwrap();
+        let wrong_password = UserPassWord::parse("wrongPass123".to_string()).unwrap();
         let hash = compute_password_hash(&password).unwrap();
         assert_err!(verify_password_hash(&hash, &wrong_password));
     }

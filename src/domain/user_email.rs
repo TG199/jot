@@ -1,4 +1,4 @@
-use validator::validate_email;
+use validator::ValidateEmail;
 
 #[derive(Debug, Clone)]
 pub struct UserEmail(String);
@@ -37,7 +37,7 @@ mod tests {
     #[test]
     fn empty_string_is_rejected() {
         let email = "".to_string();
-        assert_err(UserEmail::parse(email));
+        assert_err!(UserEmail::parse(email));
     }
 
     #[test]
