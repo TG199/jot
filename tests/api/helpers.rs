@@ -29,6 +29,18 @@ pub struct TestApp {
 }
 
 impl TestApp {
+    pub async fn post_users<Body>(&self, body: &Body) -> reqwest::Response
+    where
+        Body: serde::Serialize,
+    {
+        self.api_client
+            .post(&format!("{}/users", &self.address))
+            .json(body)
+            .send()
+            .await
+            .expect("Failed to execute request")
+    }
+
     pub async fn post_note<Body>(&self, body: &Body) -> reqwest::Response
     where
         Body: serde::Serialize,
