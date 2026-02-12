@@ -2,7 +2,7 @@ use crate::configuration::DatabaseSettings;
 use crate::configuration::Settings;
 use crate::routes::health_check;
 use crate::routes::home;
-use crate::routes::post_note;
+use crate::routes::register;
 
 use actix_web::cookie::Key;
 use actix_web::dev::Server;
@@ -81,6 +81,7 @@ async fn run(
             .wrap(TracingLogger::default())
             .route("/", web::get().to(home))
             .route("/health", web::get().to(health_check))
+            .route("/users", web::post().to(register))
             .app_data(db_pool.clone())
             .app_data(base_url.clone())
             .app_data(web::Data::new(HmacSecret(hmac_secret.clone())))
