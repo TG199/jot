@@ -1,3 +1,5 @@
+mod note_content;
+mod note_title;
 mod user;
 mod user_email;
 mod user_password;
