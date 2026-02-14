@@ -1,7 +1,5 @@
 use crate::authentication::{validate_credentials, AuthError, Credentials, TypedSession};
-use actix_web::http::header::LOCATION;
-use actix_web::{web, HttpResponse, ResponseError};
-use reqwest::StatusCode;
+use actix_web::{http::StatusCode, web, HttpResponse, ResponseError};
 use secrecy::SecretString;
 use sqlx::PgPool;
 
@@ -63,7 +61,7 @@ pub async fn login(
         .insert_user_id(user_id)
         .map_err(|e| LoginError::UnexpectedError(e.into()))?;
 
-    Ok(HttpResponse::Ok().json(serde_json!({
+    Ok(HttpResponse::Ok().json(serde_json::json!({
         "message": "Login successful",
         "user_id": user_id
     })))
