@@ -11,7 +11,7 @@ pub async fn session_middleware(
 ) -> Result<SessionMiddleware<RedisSessionStore>, anyhow::Error> {
     let redis_store = RedisSessionStore::new(redis_uri.expose_secret())
         .map_err(|e| anyhow::anyhow!("Failed to  connect to Redis: {}", e))
-        .await;
+        .await?;
 
     Ok(SessionMiddleware::new(redis_store, secret_key))
 }
