@@ -41,6 +41,34 @@ impl TestApp {
             .expect("Failed to execute request")
     }
 
+    pub async fn post_login<Body>(&self, body: &Body) -> reqwest::Response
+    where
+        Body: serde::Serialize,
+    {
+        self.api_client
+            .post(&format!("{}/login", &self.address))
+            .json(body)
+            .send()
+            .await
+            .expect("Failed to execute request")
+    }
+
+    pub async fn post_logout(&self) -> reqwest::Response {
+        self.api_client
+            .post(&format!("{}/logout", &self.address))
+            .send()
+            .await
+            .expect("Failed to execute request")
+    }
+
+    pub async fn get_current_user(&self) -> reqwest::Response {
+        self.api_client
+            .get(&format!("{}/users/me", &self.address))
+            .send()
+            .await
+            .expect("Failed to execute request")
+    }
+
     pub async fn post_note<Body>(&self, body: &Body) -> reqwest::Response
     where
         Body: serde::Serialize,
@@ -77,6 +105,8 @@ pub async fn spawn_app() -> TestApp {
         let mut c = get_configuration().expect("Failed to read configuration");
         c.database.database_name = Uuid::new_v4().to_string();
         c.application.port = 0;
+
+        c.redis_uri = secrecy::SecretString::new("redis://127.0.0.1:6379".into());
         c
     };
 
