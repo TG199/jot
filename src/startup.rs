@@ -2,7 +2,11 @@ use crate::configuration::DatabaseSettings;
 use crate::configuration::Settings;
 use crate::routes::health_check;
 use crate::routes::home;
+use crate::routes::login;
+use crate::routes::logout;
+use crate::routes::me;
 use crate::routes::register;
+use crate::session_state::session_middleware;
 
 use actix_web::cookie::Key;
 use actix_web::dev::Server;
@@ -39,6 +43,7 @@ impl Application {
             connection_pool,
             configuration.application.url().expect("Invalid host url"),
             configuration.application.hmac_secret,
+            configuration.redis_uri,
         )
         .await?;
 
@@ -67,6 +72,7 @@ async fn run(
     db_pool: PgPool,
     base_url: Url,
     hmac_secret: SecretString,
+    redis_uri: SecretString,
 ) -> Result<Server, anyhow::Error> {
     let db_pool = web::Data::new(db_pool);
     let base_url = web::Data::new(ApplicationBaseUrl(base_url));
@@ -75,13 +81,20 @@ async fn run(
     let message_store = CookieMessageStore::builder(secret_key.clone()).build();
     let message_framework = FlashMessagesFramework::builder(message_store).build();
 
+    // Create Redis session store
+    let session_mw = session_middleware(redis_uri, secret_key.clone()).await?;
+
     let server = HttpServer::new(move || {
         App::new()
+            .wrap(session_mw.clone())
             .wrap(message_framework.clone())
             .wrap(TracingLogger::default())
             .route("/", web::get().to(home))
             .route("/health", web::get().to(health_check))
+            .route("/login", web::post().to(login))
+            .route("/logout", web::post().to(logout))
             .route("/users", web::post().to(register))
+            .route("/users/me", web::get().to(me))
             .app_data(db_pool.clone())
             .app_data(base_url.clone())
             .app_data(web::Data::new(HmacSecret(hmac_secret.clone())))
