@@ -26,3 +26,27 @@ impl std::fmt::Display for NoteContent {
         self.0.fmt(f)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::NoteContent;
+    use claims::{assert_err, assert_ok};
+
+    #[test]
+    fn whitespace_only_content_is_rejected() {
+        let content = " ".to_string();
+        assert_err!(NoteContent::parse(content));
+    }
+
+    #[test]
+    fn empty_string_is_rejected() {
+        let content = "".to_string();
+        assert_err!(NoteContent::parse(content));
+    }
+
+    #[test]
+    fn valid_content_is_parsed_successfully() {
+        let content = "This is my note content with multiple lines.\nLine 2\nLine 3".to_string();
+        assert_ok!(NoteContent::parse(content));
+    }
+}
