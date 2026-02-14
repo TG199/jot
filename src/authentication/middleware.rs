@@ -36,18 +36,18 @@ impl FromRequest for TypedSession {
 }
 
 #[derive(Debug)]
-pub struct AuthentictedUser {
+pub struct AuthenticatedUser {
     pub user_id: Uuid,
 }
 
-impl FromRequest for AuthentictedUser {
+impl FromRequest for AuthenticatedUser {
     type Error = actix_web::Error;
     type Future = Ready<Result<Self, Self::Error>>;
 
     fn from_request(req: &HttpRequest, _payload: &mut Payload) -> Self::Future {
         let session = req.get_session();
         match session.get::<Uuid>(TypedSession::USER_ID_KEY) {
-            Ok(Some(user_id)) => ready(Ok(AuthentictedUser { user_id })),
+            Ok(Some(user_id)) => ready(Ok(AuthenticatedUser { user_id })),
             Ok(None) => ready(Err(actix_web::error::ErrorUnauthorized(
                 "
             You are not logged in. Please log in and try again",
