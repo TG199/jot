@@ -34,3 +34,47 @@ impl std::fmt::Display for NoteTitle {
         self.0.fmt(f)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::NoteTitle;
+    use claims::{assert_err, assert_ok};
+
+    #[test]
+    fn a_200_grapheme_long_title_is_valid() {
+        let title = "a̐".repeat(200);
+        assert_ok!(NoteTitle::parse(title));
+    }
+
+    #[test]
+    fn a_title_longer_than_200_graphemes_is_rejected() {
+        let title = "a".repeat(201);
+        assert_err!(NoteTitle::parse(title));
+    }
+
+    #[test]
+    fn whitespace_only_titles_are_rejected() {
+        let title = " ".to_string();
+        assert_err!(NoteTitle::parse(title));
+    }
+
+    #[test]
+    fn empty_string_is_rejected() {
+        let title = "".to_string();
+        assert_err!(NoteTitle::parse(title));
+    }
+
+    #[test]
+    fn titles_containing_forbidden_characters_are_rejected() {
+        for title in &['/', '(', ')', '"', '<', '>', '\\', '{', '}'] {
+            let title = title.to_string();
+            assert_err!(NoteTitle::parse(title));
+        }
+    }
+
+    #[test]
+    fn a_valid_title_is_parsed_successfully() {
+        let title = "My Important Note".to_string();
+        assert_ok!(NoteTitle::parse(title));
+    }
+}
