@@ -91,7 +91,7 @@ async fn get_stored_credentials(
 }
 
 impl Credentials {
-    pub fn new(email: String, password: UserPassword) -> Self {
+    pub fn new(email: String, password: UserPassWord) -> Self {
         Self {
             email,
             password: SecretString::new(password.expose_secret().to_string().into()),
@@ -106,7 +106,6 @@ mod tests {
     #[test]
     fn verify_password_with_valid_hash_succeeds() {
         let password = SecretString::new("TestPassword123".into());
-        // This is the hash for "TestPassword123" - generated once for testing
         let hash = SecretString::new(
             "$argon2id$v=19$m=19456,t=2,p=1$\
             VE0dJ1xo8RcJKxCc4KXMqw$\
