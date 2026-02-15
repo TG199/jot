@@ -1,3 +1,4 @@
+mod note;
 mod note_content;
 mod note_title;
 mod user;
