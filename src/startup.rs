@@ -1,11 +1,16 @@
 use crate::configuration::DatabaseSettings;
 use crate::configuration::Settings;
+use crate::routes::create_note;
+use crate::routes::delete_note;
+use crate::routes::get_note;
 use crate::routes::health_check;
 use crate::routes::home;
+use crate::routes::list_notes;
 use crate::routes::login;
 use crate::routes::logout;
 use crate::routes::me;
 use crate::routes::register;
+use crate::routes::update_note;
 use crate::session_state::session_middleware;
 
 use actix_web::cookie::Key;
@@ -95,6 +100,11 @@ async fn run(
             .route("/logout", web::post().to(logout))
             .route("/users", web::post().to(register))
             .route("/users/me", web::get().to(me))
+            .route("/notes", web::post().to(create_note))
+            .route("/notes", web::get().to(list_notes))
+            .route("/notes/{note_id}", web::get().to(get_note))
+            .route("/notes/{note_id}", web::put().to(update_note))
+            .route("/notes/{note_id}", web::delete().to(delete_note))
             .app_data(db_pool.clone())
             .app_data(base_url.clone())
             .app_data(web::Data::new(HmacSecret(hmac_secret.clone())))
