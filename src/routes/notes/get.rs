@@ -1,6 +1,5 @@
 use crate::authentication::AuthenticatedUser;
-use actix_web::{HttpResponse, ResponseError, guard::Get, web},
-use reqwest::StatusCode;
+use actix_web::{http::StatusCode, web, HttpResponse, ResponseError};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -45,9 +44,9 @@ pub async fn get_note(
     note_id: web::Path<String>,
     pool: web::Data<PgPool>,
 ) -> Result<HttpResponse, GetNoteError> {
-    let note_id = parse_str(&note_id).map_err(|_| GetNoteError::InvalidId)?
+    let note_id = Uuid::parse_str(&note_id).map_err(|_| GetNoteError::InvalidId)?;
 
-    let note = fetch_note(&pool, note_id, user_id).await?;
+    let note = fetch_note(&pool, note_id, user.user_id).await?;
 
     Ok(HttpResponse::Ok().json(note))
 }
