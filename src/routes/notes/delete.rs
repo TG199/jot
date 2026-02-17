@@ -1,6 +1,6 @@
 use crate::authentication::AuthenticatedUser;
 use actix_web::{web, HttpResponse, ResponseError};
-use reqwest::StatusCode;
+use actix_web::http::StatusCode;
 use sqlx::PgPool;
 use uuid::Uuid;
 
