@@ -29,6 +29,35 @@ pub struct TestApp {
 }
 
 impl TestApp {
+    pub async fn test_user(&self) -> TestUser {
+        self.test_user_with_email("test@example.com").await
+    }
+
+    pub async fn test_user_with_email(&self, email: &str) -> TestUser {
+        let password = "ValidPass123";
+
+        // Register the user
+        let registration_body = serde_json::json!({
+            "email": email,
+            "password": password
+        });
+        let response = self.post_users(&registration_body).await;
+        let user_data: serde_json::Value = response.json().await.unwrap();
+        let user_id = user_data["user_id"].as_str().unwrap().to_string();
+
+        // Login
+        let login_body = serde_json::json!({
+            "email": email,
+            "password": password
+        });
+        self.post_login(&login_body).await;
+
+        TestUser {
+            user_id,
+            email: email.to_string(),
+        }
+    }
+
     pub async fn post_users<Body>(&self, body: &Body) -> reqwest::Response
     where
         Body: serde::Serialize,
@@ -81,21 +110,181 @@ impl TestApp {
             .expect("Failed to execute request")
     }
 
-    pub async fn get_notes(&self) -> reqwest::Response {
+    pub async fn get_notes(&self, page: Option<i64>, page_size: Option<i64>) -> reqwest::Response {
+        let mut url = format!("{}/notes", &self.address);
+        let mut params = vec![];
+
+        if let Some(p) = page {
+            params.push(format!("page={}", p));
+        }
+        if let Some(ps) = page_size {
+            params.push(format!("page_size={}", ps));
+        }
+
+        if !params.is_empty() {
+            url.push_str("?");
+            url.push_str(&params.join("&"));
+        }
+
         self.api_client
-            .get(&format!("{}/notes", &self.address))
+            .get(&url)
             .send()
             .await
             .expect("Failed to execute request")
     }
 
-    pub async fn get_note(&self, note_id: &Uuid) -> reqwest::Response {
+    pub async fn get_note_by_id(&self, note_id: &str) -> reqwest::Response {
         self.api_client
             .get(&format!("{}/notes/{}", &self.address, note_id))
             .send()
             .await
             .expect("Failed to execute request")
     }
+
+    pub async fn put_note<Body>(&self, note_id: &str, body: &Body) -> reqwest::Response
+    where
+        Body: serde::Serialize,
+    {
+        self.api_client
+            .put(&format!("{}/notes/{}", &self.address, note_id))
+            .json(body)
+            .send()
+            .await
+            .expect("Failed to execute request")
+    }
+
+    pub async fn delete_note(&self, note_id: &str) -> reqwest::Response {
+        self.api_client
+            .delete(&format!("{}/notes/{}", &self.address, note_id))
+            .send()
+            .await
+            .expect("Failed to execute request")
+    }
+
+    // Search and filter helpers
+    pub async fn search_notes(&self, query: &str) -> reqwest::Response {
+        self.api_client
+            .get(&format!("{}/notes?search={}", &self.address, query))
+            .send()
+            .await
+            .expect("Failed to execute request")
+    }
+
+    pub async fn filter_notes_by_date(
+        &self,
+        from: Option<chrono::DateTime<chrono::Utc>>,
+        to: Option<chrono::DateTime<chrono::Utc>>,
+    ) -> reqwest::Response {
+        let mut url = format!("{}/notes", &self.address);
+        let mut params = vec![];
+
+        if let Some(f) = from {
+            params.push(format!("from={}", f.to_rfc3339()));
+        }
+        if let Some(t) = to {
+            params.push(format!("to={}", t.to_rfc3339()));
+        }
+
+        if !params.is_empty() {
+            url.push_str("?");
+            url.push_str(&params.join("&"));
+        }
+
+        self.api_client
+            .get(&url)
+            .send()
+            .await
+            .expect("Failed to execute request")
+    }
+
+    pub async fn sort_notes(&self, sort: &str, order: &str) -> reqwest::Response {
+        self.api_client
+            .get(&format!(
+                "{}/notes?sort={}&order={}",
+                &self.address, sort, order
+            ))
+            .send()
+            .await
+            .expect("Failed to execute request")
+    }
+
+    pub async fn search_notes_with_filter(
+        &self,
+        query: &str,
+        from: Option<chrono::DateTime<chrono::Utc>>,
+        to: Option<chrono::DateTime<chrono::Utc>>,
+    ) -> reqwest::Response {
+        let mut url = format!("{}/notes?search={}", &self.address, query);
+
+        if let Some(f) = from {
+            url.push_str(&format!("&from={}", f.to_rfc3339()));
+        }
+        if let Some(t) = to {
+            url.push_str(&format!("&to={}", t.to_rfc3339()));
+        }
+
+        self.api_client
+            .get(&url)
+            .send()
+            .await
+            .expect("Failed to execute request")
+    }
+
+    pub async fn filter_notes_by_tag(&self, tag: &str) -> reqwest::Response {
+        self.api_client
+            .get(&format!("{}/notes?tag={}", &self.address, tag))
+            .send()
+            .await
+            .expect("Failed to execute request")
+    }
+
+    // Tag helpers
+    pub async fn post_tag<Body>(&self, body: &Body) -> reqwest::Response
+    where
+        Body: serde::Serialize,
+    {
+        self.api_client
+            .post(&format!("{}/tags", &self.address))
+            .json(body)
+            .send()
+            .await
+            .expect("Failed to execute request")
+    }
+
+    pub async fn get_tags(&self) -> reqwest::Response {
+        self.api_client
+            .get(&format!("{}/tags", &self.address))
+            .send()
+            .await
+            .expect("Failed to execute request")
+    }
+
+    pub async fn add_tag_to_note(&self, note_id: &str, tag_id: &str) -> reqwest::Response {
+        self.api_client
+            .post(&format!(
+                "{}/notes/{}/tags/{}",
+                &self.address, note_id, tag_id
+            ))
+            .send()
+            .await
+            .expect("Failed to execute request")
+    }
+
+    pub async fn remove_tag_from_note(&self, note_id: &str, tag_id: &str) -> reqwest::Response {
+        self.api_client
+            .delete(&format!(
+                "{}/notes/{}/tags/{}",
+                &self.address, note_id, tag_id
+            ))
+            .send()
+            .await
+            .expect("Failed to execute request")
+    }
+}
+
+pub struct TestUser {
+    pub user_id: String,
+    pub email: String,
 }
 
 pub async fn spawn_app() -> TestApp {
