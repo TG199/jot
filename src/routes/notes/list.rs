@@ -36,7 +36,7 @@ pub struct NoteListeResponse {
     pub total_count: i64,
 }
 
-#[tracing::instrument(name = "List user notes", skip(user, pool))]
+#[tracing::instrument(name = "List user notes", skip(user, pool, params))]
 pub async fn list_notes(
     user: AuthenticatedUser,
     params: web::Query<PaginationParams>,
@@ -46,7 +46,11 @@ pub async fn list_notes(
     let page_size = params.page_size.clamp(1, 100);
     let offset = (page - 1) * page_size;
 
-    let total_count = get_notes_count(&pool, user_id)
+    let total_count = get_notes_count(&pool, user.user_id)
+        .await
+        .map_err(actix_web::error::ErrorInternalServerError)?;
+
+    let notes = get_notes(&pool, user.user_id, page_size, offset)
         .await
         .map_err(actix_web::error::ErrorInternalServerError)?;
 
