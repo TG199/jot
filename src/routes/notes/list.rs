@@ -1,7 +1,5 @@
 use crate::authentication::AuthenticatedUser;
-use crate::errors::note_error::NoteError;
-
-use actix_web::{web, HttpResponse};
+use actix_web::{web, Error, HttpResponse};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, QueryBuilder};
@@ -62,7 +60,7 @@ pub async fn list_notes(
     user: AuthenticatedUser,
     params: web::Query<NoteQueryParams>,
     pool: web::Data<PgPool>,
-) -> Result<HttpResponse, NoteError> {
+) -> Result<HttpResponse, Error> {
     let page = params.page.max(1);
     let page_size = params.page_size.clamp(1, 100);
     let offset = (page - 1) * page_size;
@@ -83,7 +81,7 @@ pub async fn list_notes(
         &params.tag,
     )
     .await
-    .map_err(|e| NoteError::Unexpected(anyhow::anyhow!(e)))?;
+    .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
 
     let notes = get_notes(
         &pool,
@@ -98,7 +96,7 @@ pub async fn list_notes(
         &params.tag,
     )
     .await
-    .map_err(|e| NoteError::Unexpected(anyhow::anyhow!(e)))?;
+    .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
 
     Ok(HttpResponse::Ok().json(NoteListeResponse {
         notes,
