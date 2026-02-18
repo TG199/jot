@@ -1,5 +1,3 @@
-use unicode_segmentation::UnicodeSegmentation;
-
 #[derive(Debug, Clone)]
 pub struct NoteContent(String);
 
