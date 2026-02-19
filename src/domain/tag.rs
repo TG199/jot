@@ -56,3 +56,36 @@ impl NewTag {
         Ok(Self { user_id, name })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use claims::{assert_err, assert_ok};
+
+    #[test]
+    fn valid_tag_name_is_accepted() {
+        assert_ok!(TagName::parse("work".to_string()));
+        assert_ok!(TagName::parse("my-tag".to_string()));
+        assert_ok!(TagName::parse("tag_123".to_string()));
+    }
+
+    #[test]
+    fn empty_tag_name_is_rejected() {
+        assert_err!(TagName::parse("".to_string()));
+        assert_err!(TagName::parse("   ".to_string()));
+    }
+
+    #[test]
+    fn tag_name_too_long_is_rejected() {
+        let long_name = "a".repeat(51);
+        assert_err!(TagName::parse(long_name));
+    }
+
+    #[test]
+    fn tag_name_with_special_characters_is_rejected() {
+        assert_err!(TagName::parse("tag name".to_string()));
+        assert_err!(TagName::parse("tag@name".to_string()));
+        assert_err!(TagName::parse("tag!".to_string()));
+        assert_err!(TagName::parse("tag#".to_string()));
+    }
+}
