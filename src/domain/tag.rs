@@ -44,7 +44,7 @@ pub struct Tag {
     pub name: TagName,
 }
 
-#[derive(Debig, Clone)]
+#[derive(Debug, Clone)]
 pub struct NewTag {
     pub user_id: Uuid,
     pub name: TagName,
