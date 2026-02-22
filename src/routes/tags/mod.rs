@@ -79,5 +79,50 @@ pub async fn list_tags(
 
 #[tracing::instrument(name = "Add tag to note", skip(user, pool), fields(user_id = %user.user_id))]
 pub async fn add_tag_to_note(
-    
-)
+    user: AuthenticatedUser,
+    path: web::Path<(String, String)>,
+    pool: web::Data<PgPool>,
+) -> Result<HttpResponse, TagError> {
+    let (note_id_str, tag_id_str) = path.into_inner();
+    let note_id = Uuid::parse_str(&note_id_str).map_err(|_| TagError::InvalidId)?;
+    let tag_id = Uuid::parse_str(&note_id_str).map_err(|_| TagError::InvalidId)?;
+
+    verify_note_ownerhip(&pool, note_id, user.user_id).await?;
+    verify_tag_ownerhip(&pool, tag_id, user.user_id).await?;
+
+    sqlx::query!(
+        "INSERT INTO note_tags (note_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+        note_id,
+        tag_id
+    )
+    .execute(pool.as_ref())
+    .await
+    .map_err(|e| TagError::Unexpected(anyhow::anyhow!(e)))?;
+
+    Ok(HttpResponse::Created().finish())
+}
+
+#[tracing::instrument(name = "Remove tag from note", skip(user, pool), fields(user_id = %user.user_id))]
+pub async fn remove_tag_from_note(
+    user: AuthenticatedUser,
+    path: web::Path<(String, String)>,
+    pool: web::Data<PgPool>,
+) -> Result<HttpResponse, TagError> {
+    let (note_id_str, tag_id_str) = path.into_inner();
+    let note_id = Uuid::parse_str(&note_id_str).map_err(|_| TagError::InvalidId)?;
+    let tag_id = Uuid::parse_str(&tag_id_str).map_err(|_| TagError::InvalidId)?;
+
+    verify_note_ownership(&pool, note_id, user.user_id).await?;
+    verify_tag_ownership(&pool, tag_id, user.user_id).await?;
+
+    sqlx::query!(
+        "DELETE FROM note_tags WHERE note_id = $1 AND tag_id = $2",
+        note_id,
+        tag_id
+    )
+    .execute(pool.as_ref())
+    .await
+    .map_err(|e| TagError::Unexpected(anyhow::anyhow!(e)))?;
+
+    Ok(HttpResponse::NoContent().finish())
+}
