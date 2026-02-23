@@ -53,3 +53,40 @@ where
     let current_span = tracing::Span::current();
     tokio::task::spawn_blocking(move || current_span.in_scope(f))
 }
+
+pub fn get_log_level_for_env(environment: &str) -> String {
+    match environment {
+        "production" => "info".to_string(),
+        "local" => "debug,sqlx=debug".to_string(),
+        _ => "info".to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn production_log_level_is_info() {
+        let level = get_log_level_for_env("production");
+        assert_eq!(level, "info");
+    }
+
+    #[test]
+    fn local_log_level_includes_debug() {
+        let level = get_log_level_for_env("local");
+        assert!(level.contains("debug"));
+    }
+
+    #[test]
+    fn local_log_level_includes_sqlx() {
+        let level = get_log_level_for_env("local");
+        assert!(level.contains("sqlx"));
+    }
+
+    #[test]
+    fn default_log_level_is_info() {
+        let level = get_log_level_for_env("unknown");
+        assert_eq!(level, "info");
+    }
+}
