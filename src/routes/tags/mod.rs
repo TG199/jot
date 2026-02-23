@@ -126,3 +126,29 @@ pub async fn remove_tag_from_note(
 
     Ok(HttpResponse::NoContent().finish())
 }
+
+async fn verify_note_ownerhip(pool: &PgPool, note_id: Uuid, user_id: Uuid) -> Result<(), TagError> {
+    sqlx::query!(
+        "SELECT note_id FROM notes WHERE note_id = $1 AND user_id = $2",
+        note_id,
+        user_id
+    )
+    .fetch_optional(pool)
+    .await
+    .map_err(|e| TagError::Unexpected(anyhow::anyhow!(e)))?
+    .ok_or(TagError::NotFound)?;
+    Ok(())
+}
+
+async fn verify_tag_ownership(pool: &PgPool, tag_id: Uuid, user_id: Uuid) -> Result<(), TagError> {
+    sqlx::query!(
+        "SELECT tag_id FROM tags WHERE tag_id = $1 AND user_id = $2",
+        tag_id,
+        user_id
+    )
+    .fetch_optional(pool)
+    .await
+    .map_err(|e| TagError::Unexpected(anyhow::anyhow!(e)))?
+    .ok_or(TagError::NotFound)?;
+    Ok(())
+}
