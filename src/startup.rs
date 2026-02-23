@@ -1,15 +1,20 @@
 use crate::configuration::DatabaseSettings;
 use crate::configuration::Settings;
+use crate::middleware::{configure_cors, RateLimiter, RequestId};
+use crate::routes::add_tag_to_note;
 use crate::routes::create_note;
+use crate::routes::create_tag;
 use crate::routes::delete_note;
 use crate::routes::get_note;
 use crate::routes::health_check;
 use crate::routes::home;
 use crate::routes::list_notes;
+use crate::routes::list_tags;
 use crate::routes::login;
 use crate::routes::logout;
 use crate::routes::me;
 use crate::routes::register;
+use crate::routes::remove_tag_from_note;
 use crate::routes::update_note;
 use crate::session_state::session_middleware;
 
@@ -87,13 +92,18 @@ async fn run(
     let message_framework = FlashMessagesFramework::builder(message_store).build();
 
     // Create Redis session store
-    let session_mw = session_middleware(redis_uri, secret_key.clone()).await?;
+    let session_mw = session_middleware(redis_uri, secret_key.clone())?;
 
     let server = HttpServer::new(move || {
         App::new()
+            .wrap(RequestId) // Add request ID to all requests
+            .wrap(configure_cors(&base_url.0)) // Configure CORS
+            .wrap(RateLimiter::new(100, std::time::Duration::from_secs(60))) // 100 req/min
             .wrap(session_mw.clone())
             .wrap(message_framework.clone())
             .wrap(TracingLogger::default())
+            .app_data(web::JsonConfig::default().limit(262_144)) // 256KB JSON limit
+            .app_data(web::PayloadConfig::default().limit(10_485_760)) // 10MB payload limit
             .route("/", web::get().to(home))
             .route("/health", web::get().to(health_check))
             .route("/login", web::post().to(login))
@@ -105,6 +115,16 @@ async fn run(
             .route("/notes/{note_id}", web::get().to(get_note))
             .route("/notes/{note_id}", web::put().to(update_note))
             .route("/notes/{note_id}", web::delete().to(delete_note))
+            .route("/tags", web::post().to(create_tag))
+            .route("/tags", web::get().to(list_tags))
+            .route(
+                "/notes/{note_id}/tags/{tag_id}",
+                web::post().to(add_tag_to_note),
+            )
+            .route(
+                "/notes/{note_id}/tags/{tag_id}",
+                web::delete().to(remove_tag_from_note),
+            )
             .app_data(db_pool.clone())
             .app_data(base_url.clone())
             .app_data(web::Data::new(HmacSecret(hmac_secret.clone())))
