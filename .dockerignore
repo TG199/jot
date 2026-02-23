@@ -4,3 +4,4 @@
  Dockerfile
  scripts/
  migrations/
+ docker-compose.yml
